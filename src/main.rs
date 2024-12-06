@@ -12,7 +12,14 @@ fn main() {
         .add_plugins((DefaultPlugins, WorldInspectorPlugin::default()))
         .add_systems(
             Startup,
-            (entrypoint::setup_ui, ui::directory::content::display_items).chain(),
+            (entrypoint::setup_ui, ui::directory::content::display_items)
+                // .after(DirectoryUpdatedSet)
+                .chain(),
+        )
+        .add_systems(
+            Update,
+            ui::directory::content::display_items
+                .run_if(resource_changed::<ui::directory::content::CurrentData>),
         )
         .run();
 }

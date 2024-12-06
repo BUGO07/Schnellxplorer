@@ -34,10 +34,10 @@ pub fn setup_ui(mut commands: Commands) {
         .unwrap()
         .to_string();
     let mut current_dir = if args.is_empty() {
-        println!("No arguments, start at ~");
+        info!("No arguments, start at ~");
         PathBuf::from(&home_path)
     } else {
-        println!("{:?}", args);
+        info!("{:?}", args);
         PathBuf::from(&args[0])
     };
     if !current_dir.exists() {
