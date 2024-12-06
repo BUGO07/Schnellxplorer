@@ -77,60 +77,60 @@ pub fn display_items(
             commands.entity(base_node).set_parent(root);
         }
 
-        let items = super::io::list_files_and_folders(&current_data.path).unwrap();
-        for item in items {
-            match item {
-                DirectoryItems::File(path) => {
-                    let base_node = spawn_base_node(&mut commands).id();
-                    let closure_path = path.clone();
-                    // Icon
-                    commands
-                        .spawn((
-                            ImageNode::new(asset_server.load("file_icon.png")),
-                            Node {
-                                height: Val::Px(50.0),
-                                ..default()
-                            },
-                            ItemMarker,
-                        ))
-                        .observe(
-                            move |trigger: Trigger<Pointer<Up>>, mut commands: Commands| {
-                                if trigger.event().button == PointerButton::Primary {
-                                    commands.run_system_cached_with(
-                                        super::io::open_file_or_folder_in_os,
-                                        closure_path.clone(),
-                                    );
-                                }
-                            },
-                        )
-                        .set_parent(base_node);
-                    // Folder Name
-                    commands
-                        .spawn((
-                            Text::new(
-                                std::path::Path::new(&path)
-                                    .file_name()
-                                    .unwrap()
-                                    .to_str()
-                                    .unwrap(),
-                            ),
-                            TextFont {
-                                font_size: 10.0,
-                                ..default()
-                            },
-                            ItemMarker,
-                        ))
-                        .set_parent(base_node);
+        if let Ok(items) = super::io::list_files_and_folders(&current_data.path) {
+            for item in items {
+                match item {
+                    DirectoryItems::File(path) => {
+                        let base_node = spawn_base_node(&mut commands).id();
+                        let closure_path = path.clone();
+                        // Icon
+                        commands
+                            .spawn((
+                                ImageNode::new(asset_server.load("file_icon.png")),
+                                Node {
+                                    height: Val::Px(50.0),
+                                    ..default()
+                                },
+                                ItemMarker,
+                            ))
+                            .observe(
+                                move |trigger: Trigger<Pointer<Up>>, mut commands: Commands| {
+                                    if trigger.event().button == PointerButton::Primary {
+                                        commands.run_system_cached_with(
+                                            super::io::open_file_or_folder_in_os,
+                                            closure_path.clone(),
+                                        );
+                                    }
+                                },
+                            )
+                            .set_parent(base_node);
+                        // Folder Name
+                        commands
+                            .spawn((
+                                Text::new(
+                                    std::path::Path::new(&path)
+                                        .file_name()
+                                        .unwrap()
+                                        .to_str()
+                                        .unwrap(),
+                                ),
+                                TextFont {
+                                    font_size: 10.0,
+                                    ..default()
+                                },
+                                ItemMarker,
+                            ))
+                            .set_parent(base_node);
 
-                    commands.entity(base_node).set_parent(root);
-                }
-                DirectoryItems::Folder(path) => {
-                    let base_node = spawn_base_node(&mut commands).id();
+                        commands.entity(base_node).set_parent(root);
+                    }
+                    DirectoryItems::Folder(path) => {
+                        let base_node = spawn_base_node(&mut commands).id();
 
-                    let closure_path = path.clone();
+                        let closure_path = path.clone();
 
-                    // Icon
-                    commands
+                        // Icon
+                        commands
                         .spawn((
                             ImageNode::new(asset_server.load("folder_icon.png")),
                             Node {
@@ -148,27 +148,41 @@ pub fn display_items(
                             },
                         )
                         .set_parent(base_node);
-                    // Folder Name
-                    commands
-                        .spawn((
-                            Text::new(
-                                std::path::Path::new(&path)
-                                    .file_stem()
-                                    .unwrap()
-                                    .to_str()
-                                    .unwrap(),
-                            ),
-                            TextFont {
-                                font_size: 10.0,
-                                ..default()
-                            },
-                            ItemMarker,
-                        ))
-                        .set_parent(base_node);
+                        // Folder Name
+                        commands
+                            .spawn((
+                                Text::new(
+                                    std::path::Path::new(&path)
+                                        .file_stem()
+                                        .unwrap()
+                                        .to_str()
+                                        .unwrap(),
+                                ),
+                                TextFont {
+                                    font_size: 10.0,
+                                    ..default()
+                                },
+                                ItemMarker,
+                            ))
+                            .set_parent(base_node);
 
-                    commands.entity(base_node).set_parent(root);
+                        commands.entity(base_node).set_parent(root);
+                    }
                 }
             }
+        } else {
+            //TODO: improve this
+            let base_node = spawn_base_node(&mut commands).set_parent(root).id();
+            commands
+                .spawn((
+                    Text::new("Error reading directory"),
+                    Node {
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    ItemMarker,
+                ))
+                .set_parent(base_node);
         }
         // });
     }
