@@ -1,13 +1,17 @@
 use bevy::{prelude::*, window::SystemCursorIcon, winit::cursor::CursorIcon};
 
 /// Enum housing directory items
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum DirectoryItems {
     /// File with its path
     File(String),
     /// Folder with its path
     Folder(String),
 }
+
+/// Marks the directory items to despawn them quickly.
+#[derive(Component)]
+pub struct ItemMarker;
 
 /// Current directory data
 #[derive(Resource)]
@@ -22,15 +26,62 @@ pub fn display_items(
     mut root_query: Query<Entity, With<crate::entrypoint::RootNode>>,
     current_data: Res<CurrentData>,
     asset_server: Res<AssetServer>,
+    query: Query<Entity, With<ItemMarker>>,
 ) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
     for root in root_query.iter_mut() {
         // commands.entity(root).with_children(|cb| {
+        let base_node = spawn_base_node(&mut commands).id();
+
+        let path = std::path::Path::new(&current_data.path)
+            .parent()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        let closure_path = path.clone();
+
+        // Icon
+        commands
+            .spawn((
+                ImageNode::new(asset_server.load("folder_icon.png")),
+                Node {
+                    height: Val::Px(50.0),
+                    ..default()
+                },
+                ItemMarker,
+            ))
+            .observe(
+                move |trigger: Trigger<Pointer<Up>>, mut current_data: ResMut<CurrentData>| {
+                    if trigger.event().button == PointerButton::Primary {
+                        current_data.path = closure_path.clone();
+                    }
+                },
+            )
+            .set_parent(base_node);
+        // Folder Name
+        commands
+            .spawn((
+                Text::new(".."),
+                TextFont {
+                    font_size: 10.0,
+                    ..default()
+                },
+                ItemMarker,
+            ))
+            .set_parent(base_node);
+
+        commands.entity(base_node).set_parent(root);
+
         let items = super::io::list_files_and_folders(&current_data.path).unwrap();
         for item in items {
             match item {
                 DirectoryItems::File(path) => {
                     let base_node = spawn_base_node(&mut commands).id();
-
+                    let closure_path = path.clone();
                     // Icon
                     commands
                         .spawn((
@@ -39,7 +90,18 @@ pub fn display_items(
                                 height: Val::Px(50.0),
                                 ..default()
                             },
+                            ItemMarker,
                         ))
+                        .observe(
+                            move |trigger: Trigger<Pointer<Up>>, mut commands: Commands| {
+                                if trigger.event().button == PointerButton::Primary {
+                                    commands.run_system_cached_with(
+                                        super::io::open_file_or_folder_in_os,
+                                        closure_path.clone(),
+                                    );
+                                }
+                            },
+                        )
                         .set_parent(base_node);
                     // Folder Name
                     commands
@@ -55,6 +117,7 @@ pub fn display_items(
                                 font_size: 10.0,
                                 ..default()
                             },
+                            ItemMarker,
                         ))
                         .set_parent(base_node);
 
@@ -62,6 +125,8 @@ pub fn display_items(
                 }
                 DirectoryItems::Folder(path) => {
                     let base_node = spawn_base_node(&mut commands).id();
+
+                    let closure_path = path.clone();
 
                     // Icon
                     commands
@@ -71,7 +136,16 @@ pub fn display_items(
                                 height: Val::Px(50.0),
                                 ..default()
                             },
+                            ItemMarker
                         ))
+                        .observe(
+                            move |trigger: Trigger<Pointer<Up>>,
+                                  mut current_data: ResMut<CurrentData>| {
+                                if trigger.event().button == PointerButton::Primary {
+                                    current_data.path = closure_path.clone();
+                                }
+                            },
+                        )
                         .set_parent(base_node);
                     // Folder Name
                     commands
@@ -87,6 +161,7 @@ pub fn display_items(
                                 font_size: 10.0,
                                 ..default()
                             },
+                            ItemMarker,
                         ))
                         .set_parent(base_node);
 
@@ -115,6 +190,7 @@ fn spawn_base_node<'a>(commands: &'a mut Commands) -> EntityCommands<'a> {
         },
         ZIndex(1),
         BorderRadius::all(Val::Px(8.)),
+        ItemMarker,
     ));
 
     // Hover effect
