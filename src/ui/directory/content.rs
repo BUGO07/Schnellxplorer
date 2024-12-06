@@ -32,6 +32,10 @@ pub fn display_items(
         commands.entity(entity).despawn_recursive();
     }
     for root in root_query.iter_mut() {
+        commands.spawn((
+            Text::new(format!("Current directory: {}", &current_data.path)),
+            ItemMarker,
+        ));
         // commands.entity(root).with_children(|cb| {
 
         if let Some(path) = std::path::Path::new(&current_data.path).parent() {
