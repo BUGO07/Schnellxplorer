@@ -29,7 +29,7 @@ pub fn display_items(
     query: Query<Entity, With<ItemMarker>>,
 ) {
     for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
     for root in root_query.iter_mut() {
         commands.spawn((
@@ -109,14 +109,14 @@ pub fn display_items(
                             .spawn((
                                 Text::new(
                                     std::path::Path::new(&path)
-                                    .file_name()
-                                    .unwrap()
-                                    .to_str()
-                                    .unwrap(),
+                                        .file_name()
+                                        .unwrap()
+                                        .to_str()
+                                        .unwrap(),
                                 ),
                                 TextLayout {
                                     justify: JustifyText::Center,
-                                    linebreak: LineBreak::WordOrCharacter
+                                    linebreak: LineBreak::WordOrCharacter,
                                 },
                                 TextFont {
                                     font_size: 10.0,
