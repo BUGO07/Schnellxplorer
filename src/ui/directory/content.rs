@@ -33,48 +33,45 @@ pub fn display_items(
     }
     for root in root_query.iter_mut() {
         // commands.entity(root).with_children(|cb| {
-        let base_node = spawn_base_node(&mut commands).id();
 
-        let path = std::path::Path::new(&current_data.path)
-            .parent()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+        if let Some(path) = std::path::Path::new(&current_data.path).parent() {
+            let path_string = path.to_str().unwrap().to_string();
 
-        let closure_path = path.clone();
+            let base_node = spawn_base_node(&mut commands).id();
+            let closure_path = path_string.clone();
 
-        // Icon
-        commands
-            .spawn((
-                ImageNode::new(asset_server.load("folder_icon.png")),
-                Node {
-                    height: Val::Px(50.0),
-                    ..default()
-                },
-                ItemMarker,
-            ))
-            .observe(
-                move |trigger: Trigger<Pointer<Up>>, mut current_data: ResMut<CurrentData>| {
-                    if trigger.event().button == PointerButton::Primary {
-                        current_data.path = closure_path.clone();
-                    }
-                },
-            )
-            .set_parent(base_node);
-        // Folder Name
-        commands
-            .spawn((
-                Text::new(".."),
-                TextFont {
-                    font_size: 10.0,
-                    ..default()
-                },
-                ItemMarker,
-            ))
-            .set_parent(base_node);
+            // Icon
+            commands
+                .spawn((
+                    ImageNode::new(asset_server.load("folder_icon.png")),
+                    Node {
+                        height: Val::Px(50.0),
+                        ..default()
+                    },
+                    ItemMarker,
+                ))
+                .observe(
+                    move |trigger: Trigger<Pointer<Up>>, mut current_data: ResMut<CurrentData>| {
+                        if trigger.event().button == PointerButton::Primary {
+                            current_data.path = closure_path.clone();
+                        }
+                    },
+                )
+                .set_parent(base_node);
+            // Folder Name
+            commands
+                .spawn((
+                    Text::new(".."),
+                    TextFont {
+                        font_size: 10.0,
+                        ..default()
+                    },
+                    ItemMarker,
+                ))
+                .set_parent(base_node);
 
-        commands.entity(base_node).set_parent(root);
+            commands.entity(base_node).set_parent(root);
+        }
 
         let items = super::io::list_files_and_folders(&current_data.path).unwrap();
         for item in items {
