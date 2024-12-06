@@ -105,19 +105,19 @@ pub fn display_items(
                             )
                             .set_parent(base_node);
                         // Folder Name
-                        let mut text = std::path::Path::new(&path)
-                            .file_name()
-                            .unwrap()
-                            .to_str()
-                            .unwrap()
-                            .to_string();
-                        text.truncate(13);
-                        text.push_str("...");
                         commands
                             .spawn((
                                 Text::new(
-                                    text
+                                    std::path::Path::new(&path)
+                                    .file_name()
+                                    .unwrap()
+                                    .to_str()
+                                    .unwrap(),
                                 ),
+                                TextLayout {
+                                    justify: JustifyText::Center,
+                                    linebreak: LineBreak::WordOrCharacter
+                                },
                                 TextFont {
                                     font_size: 10.0,
                                     ..default()
