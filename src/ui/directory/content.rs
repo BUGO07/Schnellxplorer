@@ -105,14 +105,18 @@ pub fn display_items(
                             )
                             .set_parent(base_node);
                         // Folder Name
+                        let mut text = std::path::Path::new(&path)
+                            .file_name()
+                            .unwrap()
+                            .to_str()
+                            .unwrap()
+                            .to_string();
+                        text.truncate(13);
+                        text.push_str("...");
                         commands
                             .spawn((
                                 Text::new(
-                                    std::path::Path::new(&path)
-                                        .file_name()
-                                        .unwrap()
-                                        .to_str()
-                                        .unwrap(),
+                                    text
                                 ),
                                 TextFont {
                                     font_size: 10.0,
@@ -193,7 +197,12 @@ fn spawn_base_node<'a>(commands: &'a mut Commands) -> EntityCommands<'a> {
     let mut base_node_ec = commands.spawn((
         Button,
         Node {
-            margin: UiRect::all(Val::Px(5.0)),
+            margin: UiRect {
+                left: Val::Px(3.0),
+                right: Val::Px(3.0),
+                top: Val::Px(20.0),
+                bottom: Val::Px(3.0),
+            },
             padding: UiRect::all(Val::Px(5.0)),
             height: Val::Px(100.0),
             width: Val::Px(100.0),
