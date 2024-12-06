@@ -47,9 +47,4 @@ pub fn setup_ui(mut commands: Commands) {
     commands.insert_resource(crate::ui::directory::content::CurrentData {
         path: current_dir.to_str().unwrap().to_string(),
     });
-
-    commands.spawn(Text::new(format!(
-        "Current directory: {}",
-        current_dir.display()
-    )));
 }
