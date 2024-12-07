@@ -20,8 +20,16 @@ pub fn list_files_and_folders(path: String) -> Result<Vec<crate::DirectoryItems>
 
 /// Open the file/folder
 pub fn open_file_or_folder_in_os(path: String) {
-    //TODO: make this for windows and mac aswell
-    let _ = std::process::Command::new("xdg-open")
+    #[cfg(target_os = "linux")]
+    let prog = "xdg-open";
+
+    #[cfg(target_os = "windows")]
+    let prog = "start";
+
+    #[cfg(target_os = "macos")]
+    let prog = "open";
+
+    let _ = std::process::Command::new(prog)
         .arg(path.clone())
         .spawn();
 }
