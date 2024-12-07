@@ -22,7 +22,16 @@ pub enum DirectoryItems {
 fn main() -> eframe::Result {
     let mut args: Vec<String> = std::env::args().collect();
     args.remove(0);
+
+    #[cfg(not(target_os = "windows"))]
     let home_path = std::env::var_os("HOME")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+
+    #[cfg(target_os = "windows")]
+    let home_path = std::env::var_os("USERPROFILE").or_else(|_| std::env::var_os("HOMEPATH"))
         .unwrap()
         .to_str()
         .unwrap()
