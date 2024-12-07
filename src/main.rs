@@ -92,11 +92,10 @@ fn main() -> eframe::Result {
                     }
                     if let Ok(items) = io::list_files_and_folders(current_path.clone()) {
                         for item in items {
-                            match item {
-                                DirectoryItems::File(path) => {
-                                    ui.horizontal(|ui| {
+                            let mut spawn = |path: &String, icon: egui::Image, is_dir: bool| {
+                                let created = ui.horizontal(|ui| {
                                         ui.add(
-                                            file_icon
+                                            icon
                                                 .clone()
                                                 .fit_to_exact_size(Vec2::new(32.0, 32.0)),
                                         );
@@ -110,43 +109,7 @@ fn main() -> eframe::Result {
                                             )
                                             .wrap_mode(egui::TextWrapMode::Wrap),
                                         );
-                                        if ui
-                                            .allocate_response(ui.available_size(), Sense::click())
-                                            .clicked()
-                                            || ui
-                                                .allocate_response(
-                                                    Vec2::new(32.0, 32.0),
-                                                    Sense::click(),
-                                                )
-                                                .clicked()
-                                            || name.clicked()
-                                        {
-                                            io::open_file_or_folder_in_os(path.clone());
-                                        }
-                                    });
-                                }
-                                DirectoryItems::Folder(path) => {
-                                    if ui
-                                        .horizontal(|ui| {
-                                            ui.add(
-                                                folder_icon
-                                                    .clone()
-                                                    .fit_to_exact_size(Vec2::new(32.0, 32.0)),
-                                            );
-                                            let name = ui.add(
-                                                Label::new(
-                                                    PathBuf::from(path.clone())
-                                                        .file_name()
-                                                        .unwrap()
-                                                        .to_str()
-                                                        .unwrap(),
-                                                )
-                                                .wrap_mode(egui::TextWrapMode::Wrap),
-                                            );
-                                            ui.allocate_response(
-                                                ui.available_size(),
-                                                Sense::click(),
-                                            )
+                                        ui.allocate_response(ui.available_size(), Sense::click())
                                             .clicked()
                                                 || ui
                                                     .allocate_response(
@@ -155,11 +118,31 @@ fn main() -> eframe::Result {
                                                     )
                                                     .clicked()
                                                 || name.clicked()
-                                        })
-                                        .inner
-                                    {
-                                        current_path = path;
+                                    })
+                                    .inner;
+
+                                if created {
+                                    if is_dir {
+                                        current_path = path.to_string();
+                                    } else {
+                                        io::open_file_or_folder_in_os(path.clone());
                                     }
+                                }
+                            };
+                            match item {
+                                DirectoryItems::File(path) => {
+                                    spawn(
+                                        &path,
+                                        file_icon.clone(),
+                                        false,
+                                    )
+                                }
+                                DirectoryItems::Folder(path) => {
+                                    spawn(
+                                        &path,
+                                        folder_icon.clone(),
+                                        true,
+                                    )
                                 }
                             }
                         }
