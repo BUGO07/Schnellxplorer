@@ -1,27 +1,34 @@
 use std::path::PathBuf;
 
-use eframe::egui::{self, Context, Label, Sense, Vec2};
+use eframe::egui::{self, Button, Color32, Context, RichText, Vec2};
 
 use crate::DirectoryItems;
 
 /// Menu bar
-pub fn panel(ctx: &Context, current_path: &mut String, search: &str) {
+pub fn draw(
+    ctx: &Context,
+    current_path: &mut String,
+    current_written_path: &mut String,
+    search: &str,
+) {
     egui::CentralPanel::default().show(ctx, |ui| {
         egui::ScrollArea::vertical().show(ui, |ui| {
+            ui.allocate_space(Vec2::X * ui.available_width());
             let file_icon = egui::Image::new(egui::include_image!("../assets/file_icon.png"));
             let folder_icon = egui::Image::new(egui::include_image!("../assets/folder_icon.png"));
             ui.vertical(|ui| {
+                ui.style_mut().visuals.widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
                 if PathBuf::from(current_path.clone()).parent().is_some() {
                     ui.horizontal(|ui| {
-                        ui.add(folder_icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)));
-                        let name = ui.add(Label::new("..").wrap_mode(egui::TextWrapMode::Wrap));
                         if ui
-                            .allocate_response(
-                                ui.available_size() - Vec2::new(32.0, 0.0),
-                                Sense::click(),
+                            .add(
+                                Button::image_and_text(
+                                    folder_icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
+                                    RichText::new(".."),
+                                )
+                                .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
                             )
                             .clicked()
-                            || name.clicked()
                         {
                             *current_path = PathBuf::from(current_path.clone())
                                 .parent()
@@ -29,39 +36,43 @@ pub fn panel(ctx: &Context, current_path: &mut String, search: &str) {
                                 .to_str()
                                 .unwrap()
                                 .to_string();
+                            *current_written_path = current_path.clone();
                         }
                     });
                 }
                 if let Ok(items) = crate::io::list_files_and_folders(current_path.clone()) {
                     let mut spawn = |path: &String, icon: egui::Image, size: f32, is_dir: bool| {
-                        let created = ui
+                        let clicked = ui
                             .horizontal(|ui| {
-                                ui.add(icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)));
                                 let binding = PathBuf::from(path.clone());
                                 let name = if is_dir {
                                     binding.file_name().unwrap().to_str().unwrap().to_string()
                                 } else {
+                                    let (size, unit) = crate::utils::size_units(size);
+
                                     format!(
-                                        "{} - {} MB",
+                                        "{} - {} {}",
                                         binding.file_name().unwrap().to_str().unwrap(),
-                                        size
+                                        size,
+                                        unit
                                     )
                                 };
 
-                                let label =
-                                    ui.add(Label::new(name).wrap_mode(egui::TextWrapMode::Wrap));
-                                ui.allocate_response(ui.available_size(), Sense::click())
-                                    .clicked()
-                                    || ui
-                                        .allocate_response(Vec2::new(32.0, 32.0), Sense::click())
-                                        .clicked()
-                                    || label.clicked()
+                                ui.add(
+                                    Button::image_and_text(
+                                        icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
+                                        RichText::new(name),
+                                    )
+                                    .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
+                                )
+                                .clicked()
                             })
                             .inner;
 
-                        if created {
+                        if clicked {
                             if is_dir {
                                 *current_path = path.to_string();
+                                *current_written_path = current_path.clone();
                             } else {
                                 crate::io::open_file_or_folder_in_os(path.clone());
                             }

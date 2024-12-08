@@ -5,16 +5,23 @@
 
 use std::path::PathBuf;
 
+use eframe::egui::Vec2;
 use io::get_home_dir;
 
 /// This module handles stuff that has to do with the OS.
 pub mod io;
 
-/// This module handles the top bar.
+/// This module handles utility functions.
+pub mod utils;
+
+/// This module handles the menu bar.
 pub mod menu_bar;
 
 /// This module handles the top bar.
 pub mod top_bar;
+
+/// This module handles the side bar.
+pub mod side_bar;
 
 /// This module handles the main area `CenterPanel`
 pub mod center_panel;
@@ -45,6 +52,7 @@ fn main() -> eframe::Result {
             home_path
         }
     };
+    let mut current_written_path = current_path.clone();
     let mut search = "".to_string();
 
     eframe::run_simple_native(
@@ -58,10 +66,19 @@ fn main() -> eframe::Result {
                 "Schnellxplorer - {}",
                 current_path
             )));
+            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::MinInnerSize(Vec2::new(
+                740.0, 460.0,
+            )));
             egui_extras::install_image_loaders(ctx);
-            menu_bar::panel(ctx);
-            top_bar::panel(ctx, &mut current_path, &mut search);
-            center_panel::panel(ctx, &mut current_path, &search);
+            menu_bar::draw(ctx);
+            top_bar::draw(
+                ctx,
+                &mut current_path,
+                &mut current_written_path,
+                &mut search,
+            );
+            side_bar::draw(ctx, &mut current_path, &mut current_written_path);
+            center_panel::draw(ctx, &mut current_path, &mut current_written_path, &search);
         },
     )
 }
