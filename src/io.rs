@@ -7,7 +7,7 @@ pub fn list_files_and_folders(path: String) -> Result<Vec<crate::DirectoryItems>
         if path.is_file() {
             let size = if let Ok(file) = std::fs::File::open(path.clone()) {
                 if let Ok(file) = file.metadata() {
-                    file.len() as f32 / 1_000_000.0
+                    file.len() as f32
                 } else {
                     0.0
                 }
@@ -56,7 +56,7 @@ pub fn get_home_dir() -> String {
     #[cfg(target_os = "windows")]
     {
         std::env::var_os("USERPROFILE")
-            .or_else(|_| std::env::var_os("HOMEPATH"))
+            .or_else(|| std::env::var_os("HOMEPATH"))
             .unwrap()
             .to_str()
             .unwrap()
