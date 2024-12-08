@@ -14,10 +14,13 @@ pub fn draw(
     egui::CentralPanel::default().show(ctx, |ui| {
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.allocate_space(Vec2::X * ui.available_width());
+
             let file_icon = egui::Image::new(egui::include_image!("../assets/file_icon.png"));
             let folder_icon = egui::Image::new(egui::include_image!("../assets/folder_icon.png"));
+
             ui.vertical(|ui| {
                 ui.style_mut().visuals.widgets.inactive.weak_bg_fill = Color32::TRANSPARENT;
+
                 if PathBuf::from(current_path.clone()).parent().is_some() {
                     ui.horizontal(|ui| {
                         if ui
@@ -40,68 +43,75 @@ pub fn draw(
                         }
                     });
                 }
+
                 if let Ok(items) = crate::io::list_files_and_folders(current_path.clone()) {
-                    let mut spawn = |path: &String, icon: egui::Image, size: f32, is_dir: bool| {
-                        let clicked = ui
-                            .horizontal(|ui| {
-                                let binding = PathBuf::from(path.clone());
-                                let name = if is_dir {
-                                    binding.file_name().unwrap().to_str().unwrap().to_string()
+                    let mut spawn_button =
+                        |path: &str, icon: egui::Image, size: f32, is_dir: bool| {
+                            let clicked = ui
+                                .horizontal(|ui| {
+                                    let binding = PathBuf::from(path);
+                                    let name = if is_dir {
+                                        binding.file_name().unwrap().to_str().unwrap().to_string()
+                                    } else {
+                                        let (size, unit) = crate::utils::size_units(size);
+                                        format!(
+                                            "{} - {} {}",
+                                            binding.file_name().unwrap().to_str().unwrap(),
+                                            size,
+                                            unit
+                                        )
+                                    };
+
+                                    ui.add(
+                                        Button::image_and_text(
+                                            icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
+                                            RichText::new(name),
+                                        )
+                                        .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
+                                    )
+                                    .clicked()
+                                })
+                                .inner;
+
+                            if clicked {
+                                if is_dir {
+                                    *current_path = path.to_string();
+                                    *current_written_path = current_path.clone();
                                 } else {
-                                    let (size, unit) = crate::utils::size_units(size);
-
-                                    format!(
-                                        "{} - {} {}",
-                                        binding.file_name().unwrap().to_str().unwrap(),
-                                        size,
-                                        unit
-                                    )
-                                };
-
-                                ui.add(
-                                    Button::image_and_text(
-                                        icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
-                                        RichText::new(name),
-                                    )
-                                    .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
-                                )
-                                .clicked()
-                            })
-                            .inner;
-
-                        if clicked {
-                            if is_dir {
-                                *current_path = path.to_string();
-                                *current_written_path = current_path.clone();
-                            } else {
-                                crate::io::open_file_or_folder_in_os(path.clone());
+                                    crate::io::open_file_or_folder_in_os(path.to_string());
+                                }
                             }
-                        }
-                    };
-                    let new_items = items
+                        };
+
+                    let filtered_items = items
                         .iter()
-                        .filter(|s| {
-                            let binding = PathBuf::from(match s {
-                                DirectoryItems::Folder(n) | DirectoryItems::File(n, _) => n,
-                            });
-                            let path = binding.file_name().unwrap().to_str().unwrap();
-                            path.to_lowercase().contains(&search.to_lowercase())
+                        .filter(|item| {
+                            let path = match item {
+                                DirectoryItems::Folder(p) | DirectoryItems::File(p, _) => p,
+                            };
+                            PathBuf::from(path)
+                                .file_name()
+                                .and_then(|f| f.to_str())
+                                .map_or(false, |name| {
+                                    name.to_lowercase().contains(&search.to_lowercase())
+                                })
                         })
                         .collect::<Vec<_>>();
-                    for item in new_items {
+
+                    for item in filtered_items {
                         match item {
                             DirectoryItems::File(path, size) => {
-                                spawn(path, file_icon.clone(), *size, false);
+                                spawn_button(path, file_icon.clone(), *size, false);
                             }
                             DirectoryItems::Folder(path) => {
-                                spawn(path, folder_icon.clone(), 0.0, true);
+                                spawn_button(path, folder_icon.clone(), 0.0, true);
                             }
                         }
                     }
                 } else {
                     ui.label("Error reading directory");
                 }
-            })
+            });
         });
     });
 }

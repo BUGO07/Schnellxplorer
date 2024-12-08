@@ -1,8 +1,6 @@
 //! This is my attempt at making a blazingly fast file explorer, using rust.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// TODO: add more stuff and split them into modules
-
 use std::path::PathBuf;
 
 use eframe::egui::Vec2;
