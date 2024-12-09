@@ -41,17 +41,21 @@ fn main() -> eframe::Result {
 
     let mut current_path = if args.is_empty() {
         println!("No arguments, start at ~");
-        home_path
+        home_path.clone()
     } else {
         println!("{:?}", args);
         if PathBuf::from(&args[0]).exists() {
             args[0].clone()
         } else {
-            home_path
+            home_path.clone()
         }
     };
     let mut current_written_path = current_path.clone();
+    let mut last_path = "".to_string();
+    let mut last_items: Vec<DirectoryItems> = Vec::new();
+    let home_items = io::list_files_and_folders(home_path).unwrap();
     let mut search = "".to_string();
+    let mut eq = false;
 
     eframe::run_simple_native(
         "Schnellxplorer",
@@ -75,8 +79,27 @@ fn main() -> eframe::Result {
                 &mut current_written_path,
                 &mut search,
             );
-            side_bar::draw(ctx, &mut current_path, &mut current_written_path);
-            center_panel::draw(ctx, &mut current_path, &mut current_written_path, &search);
+            side_bar::draw(
+                ctx,
+                &mut current_path,
+                &mut current_written_path,
+                &home_items,
+            );
+            center_panel::draw(
+                ctx,
+                &mut current_path,
+                &mut current_written_path,
+                &search,
+                &mut last_path,
+                &mut last_items,
+            );
+            if eq {
+                last_path = current_path.clone();
+                eq = false;
+            }
+            if last_path != current_path {
+                eq = true;
+            }
         },
     )
 }

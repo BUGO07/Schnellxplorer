@@ -1,7 +1,11 @@
+use crate::DirectoryItems;
+
 /// This function lists files and folders from a given path.
-pub fn list_files_and_folders(path: String) -> Result<Vec<crate::DirectoryItems>, std::io::Error> {
-    let entries = std::fs::read_dir(path)?;
+pub fn list_files_and_folders(path: String) -> Result<Vec<DirectoryItems>, std::io::Error> {
+    let entries = std::fs::read_dir(path.clone())?;
     let mut items = Vec::new();
+
+    println!("LISTING FILES AND FOLDERS at {}", path.clone());
 
     for entry in entries {
         let path = entry?.path();
@@ -11,16 +15,27 @@ pub fn list_files_and_folders(path: String) -> Result<Vec<crate::DirectoryItems>
                 .map(|metadata| metadata.len() as f32)
                 .unwrap_or(0.0);
 
-            items.push(crate::DirectoryItems::File(
+            items.push(DirectoryItems::File(
                 path.to_string_lossy().to_string(),
                 size,
             ));
         } else if path.is_dir() {
-            items.push(crate::DirectoryItems::Folder(
-                path.to_string_lossy().to_string(),
-            ));
+            items.push(DirectoryItems::Folder(path.to_string_lossy().to_string()));
         }
     }
+
+    items.sort_by(|a, b| {
+        match a {
+            DirectoryItems::Folder(_) => 0,
+
+            DirectoryItems::File(_, _) => 1,
+        }
+        .cmp(match b {
+            DirectoryItems::Folder(_) => &0,
+
+            DirectoryItems::File(_, _) => &1,
+        })
+    });
 
     Ok(items)
 }
@@ -36,7 +51,7 @@ pub fn open_file_or_folder_in_os(path: String) {
     #[cfg(target_os = "macos")]
     let prog = "open";
 
-    let _ = std::process::Command::new(prog).arg(path.clone()).spawn();
+    let _ = std::process::Command::new(prog).arg(path).spawn();
 }
 
 /// Get the home directory.

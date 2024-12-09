@@ -3,7 +3,12 @@ use std::path::PathBuf;
 use eframe::egui::{self, Button, Color32, Context, RichText, Vec2};
 
 /// Side bar
-pub fn draw(ctx: &Context, current_path: &mut String, current_written_path: &mut String) {
+pub fn draw(
+    ctx: &Context,
+    current_path: &mut String,
+    current_written_path: &mut String,
+    home_items: &[crate::DirectoryItems],
+) {
     egui::SidePanel::new(egui::panel::Side::Left, "left_bar")
         .resizable(false)
         .show(ctx, |ui| {
@@ -45,23 +50,17 @@ pub fn draw(ctx: &Context, current_path: &mut String, current_written_path: &mut
                         32.0,
                     );
 
-                    if let Ok(items) = crate::io::list_files_and_folders(crate::io::get_home_dir())
-                    {
-                        for item in items {
-                            if let crate::DirectoryItems::Folder(path) = item {
-                                let name = PathBuf::from(&path)
-                                    .file_name()
-                                    .and_then(|f| f.to_str())
-                                    .unwrap_or_default()
-                                    .to_string();
+                    for item in home_items {
+                        if let crate::DirectoryItems::Folder(path) = item {
+                            let name = PathBuf::from(&path)
+                                .file_name()
+                                .and_then(|f| f.to_str())
+                                .unwrap_or_default()
+                                .to_string();
 
-                                if name.starts_with('.')
-                                    || name.chars().next().unwrap().is_lowercase()
-                                {
-                                    continue;
-                                }
-
-                                spawn_button(&path, &name, folder_icon.clone(), 32.0);
+                            if !name.starts_with('.') && name.chars().next().unwrap().is_uppercase()
+                            {
+                                spawn_button(path, &name, folder_icon.clone(), 32.0);
                             }
                         }
                     }
