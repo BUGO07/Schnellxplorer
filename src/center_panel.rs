@@ -10,6 +10,8 @@ pub fn draw(
     current_path: &mut String,
     current_written_path: &mut String,
     search: &str,
+    last_path: &mut String,
+    last_items: &mut Vec<DirectoryItems>,
 ) {
     egui::CentralPanel::default().show(ctx, |ui| {
         egui::ScrollArea::vertical().show(ui, |ui| {
@@ -43,47 +45,74 @@ pub fn draw(
                         }
                     });
                 }
-
-                if let Ok(items) = crate::io::list_files_and_folders(current_path.clone()) {
-                    let mut spawn_button =
-                        |path: &str, icon: egui::Image, size: f32, is_dir: bool| {
-                            let clicked = ui
-                                .horizontal(|ui| {
-                                    let binding = PathBuf::from(path);
-                                    let name = if is_dir {
-                                        binding.file_name().unwrap().to_str().unwrap().to_string()
-                                    } else {
-                                        let (size, unit) = crate::utils::size_units(size);
-                                        format!(
-                                            "{} - {} {}",
-                                            binding.file_name().unwrap().to_str().unwrap(),
-                                            size,
-                                            unit
-                                        )
-                                    };
-
-                                    ui.add(
-                                        Button::image_and_text(
-                                            icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
-                                            RichText::new(name),
-                                        )
-                                        .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
-                                    )
-                                    .clicked()
-                                })
-                                .inner;
-
-                            if clicked {
-                                if is_dir {
-                                    *current_path = path.to_string();
-                                    *current_written_path = current_path.clone();
-                                } else {
-                                    crate::io::open_file_or_folder_in_os(path.to_string());
-                                }
-                            }
+                let mut spawn_button = |path: &str, icon: egui::Image, size: f32, is_dir: bool| {
+                    ui.horizontal(|ui| {
+                        let binding = PathBuf::from(path);
+                        let name = if is_dir {
+                            binding.file_name().unwrap().to_str().unwrap().to_string()
+                        } else {
+                            let (size, unit) = crate::utils::size_units(size);
+                            format!(
+                                "{} - {} {}",
+                                binding.file_name().unwrap().to_str().unwrap(),
+                                size,
+                                unit
+                            )
                         };
 
-                    let filtered_items = items
+                        ui.add(
+                            Button::image_and_text(
+                                icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
+                                RichText::new(name),
+                            )
+                            .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
+                        )
+                        .clicked()
+                    })
+                    .inner
+                };
+
+                if current_path != last_path {
+                    *last_items = if let Ok(items) =
+                        crate::io::list_files_and_folders(current_path.clone())
+                    {
+                        for item in items
+                            .iter()
+                            .filter(|item| {
+                                let path = match item {
+                                    DirectoryItems::Folder(p) | DirectoryItems::File(p, _) => p,
+                                };
+                                PathBuf::from(path)
+                                    .file_name()
+                                    .and_then(|f| f.to_str())
+                                    .map_or(false, |name| {
+                                        name.to_lowercase().contains(&search.to_lowercase())
+                                    })
+                            })
+                            .collect::<Vec<_>>()
+                        {
+                            match item {
+                                DirectoryItems::File(path, size) => {
+                                    if spawn_button(path, file_icon.clone(), *size, false) {
+                                        crate::io::open_file_or_folder_in_os(path.clone());
+                                    }
+                                }
+                                DirectoryItems::Folder(path) => {
+                                    if spawn_button(path, folder_icon.clone(), 0.0, true) {
+                                        *last_path = current_path.clone();
+                                        *current_path = path.clone();
+                                        *current_written_path = path.clone();
+                                    }
+                                }
+                            }
+                        }
+                        items
+                    } else {
+                        ui.label("Error reading directory");
+                        Vec::new()
+                    };
+                } else {
+                    for item in last_items
                         .iter()
                         .filter(|item| {
                             let path = match item {
@@ -96,20 +125,23 @@ pub fn draw(
                                     name.to_lowercase().contains(&search.to_lowercase())
                                 })
                         })
-                        .collect::<Vec<_>>();
-
-                    for item in filtered_items {
+                        .collect::<Vec<_>>()
+                    {
                         match item {
                             DirectoryItems::File(path, size) => {
-                                spawn_button(path, file_icon.clone(), *size, false);
+                                if spawn_button(path, file_icon.clone(), *size, false) {
+                                    crate::io::open_file_or_folder_in_os(path.clone());
+                                }
                             }
                             DirectoryItems::Folder(path) => {
-                                spawn_button(path, folder_icon.clone(), 0.0, true);
+                                if spawn_button(path, folder_icon.clone(), 0.0, true) {
+                                    *last_path = current_path.clone();
+                                    *current_path = path.clone();
+                                    *current_written_path = path.clone();
+                                }
                             }
                         }
                     }
-                } else {
-                    ui.label("Error reading directory");
                 }
             });
         });
