@@ -47,63 +47,67 @@ pub fn draw(
                         }
                     });
                 }
-                let mut spawn_button = |path: &str, icon: egui::Image, size: f32, is_dir: bool| {
-                    ui.horizontal(|ui| {
-                        let binding = PathBuf::from(path);
-                        let name = if is_dir {
-                            binding.file_name().unwrap().to_str().unwrap().to_string()
-                        } else {
-                            let (size, unit) = crate::utils::size_units(size);
-                            format!(
-                                "{} - {} {}",
-                                binding.file_name().unwrap().to_str().unwrap(),
-                                size,
-                                unit
-                            )
-                        };
+                let mut spawn_button =
+                    |path: &str,
+                     icon: egui::Image,
+                     size: f32,
+                     is_dir: bool,
+                     lp: &mut String,
+                     current_p: &mut String,
+                     current_wp: &mut String| {
+                        ui.horizontal(|ui| {
+                            let binding = PathBuf::from(path);
+                            let name = if is_dir {
+                                binding.file_name().unwrap().to_str().unwrap().to_string()
+                            } else {
+                                let (size, unit) = crate::utils::size_units(size);
+                                format!(
+                                    "{} - {} {}",
+                                    binding.file_name().unwrap().to_str().unwrap(),
+                                    size,
+                                    unit
+                                )
+                            };
 
-                        let btn = ui.add(
-                            Button::image_and_text(
-                                icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
-                                RichText::new(name),
-                            )
-                            .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
-                        );
-                        btn.context_menu(|ui| {
-                            if ui.add(Button::new("Open")).clicked() {
-                                if is_dir {
-                                    // *last_path = current_path.clone();
-                                    // *current_path = path.to_string();
-                                    // *current_written_path = path.to_string();
-                                } else {
-                                    crate::io::open_file_or_folder_in_os(path.to_string());
-                                }
-                                ui.close_menu();
+                            let btn = ui.add(
+                                Button::image_and_text(
+                                    icon.clone().fit_to_exact_size(Vec2::new(32.0, 32.0)),
+                                    RichText::new(name),
+                                )
+                                .min_size(Vec2::new(ui.available_width() - 10.0, 32.0)),
+                            );
+                            if btn.context_menu_opened() {
+                                btn.clone().highlight();
                             }
-                            if ui.add(Button::new("Copy")).clicked() {
-                                if is_dir {
-                                    // *last_path = current_path.clone();
-                                    // *current_path = path.to_string();
-                                    // *current_written_path = path.to_string();
-                                } else {
+                            btn.context_menu(|ui| {
+                                if ui.add(Button::new("Open")).clicked() {
+                                    if is_dir {
+                                        *lp = current_p.clone();
+                                        *current_p = path.to_string();
+                                        *current_wp = path.to_string();
+                                    } else {
+                                        crate::io::open_file_or_folder_in_os(path.to_string());
+                                    }
+                                    ui.close_menu();
+                                }
+                                if !is_dir && ui.add(Button::new("Copy")).clicked() {
                                     crate::io::copy_file_to_clipboard(path.to_string());
+                                    ui.close_menu();
                                 }
-                                ui.close_menu();
-                            }
-                            if ui.add(Button::new("Copy Location")).clicked() {
-                                crate::io::copy_text_to_clipboard(path.to_string());
-                                ui.close_menu();
-                            }
-                            if ui.add(Button::new("Delete")).clicked() {
-                                crate::io::delete_path(path.to_string());
-                                *refresh_directory = true;
-                                ui.close_menu();
-                            }
-                        });
-                        btn.clicked()
-                    })
-                    .inner
-                };
+                                if ui.add(Button::new("Copy Location")).clicked() {
+                                    crate::io::copy_text_to_clipboard(path.to_string());
+                                    ui.close_menu();
+                                }
+                                if ui.add(Button::new("Delete")).clicked() {
+                                    crate::io::delete_path(path.to_string());
+                                    *refresh_directory = true;
+                                    ui.close_menu();
+                                }
+                            });
+                            btn.clicked()
+                        })
+                        .inner
+                    };
 
                 if current_path != last_path {
                     *refresh_directory = true;
@@ -125,12 +129,28 @@ pub fn draw(
                     {
                         match item {
                             DirectoryItems::File(path, size) => {
-                                if spawn_button(path, file_icon.clone(), *size, false) {
+                                if spawn_button(
+                                    path,
+                                    file_icon.clone(),
+                                    *size,
+                                    false,
+                                    last_path,
+                                    current_path,
+                                    current_written_path,
+                                ) {
                                     crate::io::open_file_or_folder_in_os(path.clone());
                                 }
                             }
                             DirectoryItems::Folder(path) => {
-                                if spawn_button(path, folder_icon.clone(), 0.0, true) {
+                                if spawn_button(
+                                    path,
+                                    folder_icon.clone(),
+                                    0.0,
+                                    true,
+                                    last_path,
+                                    current_path,
+                                    current_written_path,
+                                ) {
                                     *last_path = current_path.clone();
                                     *current_path = path.clone();
                                     *current_written_path = path.clone();
