@@ -1,3 +1,5 @@
+use clipboard_rs::{Clipboard, ClipboardContext};
+
 use crate::DirectoryItems;
 
 /// This function lists files and folders from a given path.
@@ -52,6 +54,32 @@ pub fn open_file_or_folder_in_os(path: String) {
     let prog = "open";
 
     let _ = std::process::Command::new(prog).arg(path).spawn();
+}
+
+/// Delete a folder or a file
+pub fn delete_path(path: String) {
+    let path = std::path::PathBuf::from(&path);
+    if path.is_file() {
+        std::fs::remove_file(path).unwrap();
+        return;
+    }
+    if path.is_dir() {
+        let _ = std::fs::remove_dir_all(path);
+    } else {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+/// Copy text to clipboard
+pub fn copy_text_to_clipboard(text: String) {
+    let ctx = ClipboardContext::new().unwrap();
+    let _ = ctx.set_text(text);
+}
+
+/// Copy file to clipboard
+pub fn copy_file_to_clipboard(path: String) {
+    let ctx = ClipboardContext::new().unwrap();
+    let _ = ctx.set_files([path].to_vec());
 }
 
 /// Get the home directory.

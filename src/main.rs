@@ -56,6 +56,7 @@ fn main() -> eframe::Result {
     let home_items = io::list_files_and_folders(home_path).unwrap();
     let mut search = "".to_string();
     let mut eq = false;
+    let mut refresh = false;
 
     eframe::run_simple_native(
         "Schnellxplorer",
@@ -64,6 +65,14 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         move |ctx, _frame| {
+            if refresh {
+                if let Ok(items) = io::list_files_and_folders(current_path.clone()) {
+                    last_items = items;
+                } else {
+                    println!("Couldn't read dir!");
+                }
+                refresh = false;
+            }
             ctx.send_viewport_cmd(eframe::egui::ViewportCommand::Title(format!(
                 "Schnellxplorer - {}",
                 current_path
@@ -92,6 +101,7 @@ fn main() -> eframe::Result {
                 &search,
                 &mut last_path,
                 &mut last_items,
+                &mut refresh,
             );
             if eq {
                 last_path = current_path.clone();
